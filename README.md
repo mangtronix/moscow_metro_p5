@@ -16,6 +16,8 @@ Interactive Moscow Metro map built with [p5.js](https://p5js.org/) and OpenStree
 
 ## How It Was Made
 
+The [full conversation with Claude Code](conversation.md) is exported in this repo.
+
 This project was built entirely through a conversation with [Claude Code](https://claude.ai/claude-code), Anthropic's AI coding assistant, without writing any code manually.
 
 ### Process
