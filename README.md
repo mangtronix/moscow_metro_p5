@@ -4,8 +4,6 @@ Interactive Moscow Metro map built with [p5.js](https://p5js.org/) and OpenStree
 
 **Live demo:** https://mangtronix.github.io/moscow_metro_p5/
 
-![Moscow Metro Map](https://mangtronix.github.io/moscow_metro_p5/preview.png)
-
 ## Features
 
 - 241 metro stations plotted on a live OpenStreetMap tile background
