@@ -34,6 +34,14 @@ let dragStartX, dragStartY;
 let dragStartLat, dragStartLon;
 let hoveredStation = null;
 
+// Touch state
+let pinchStartDist = null;
+let pinchStartZoom = null;
+let tapStartX, tapStartY, tapStartTime;
+let tapCancelled = false;
+const TAP_MAX_MOVE = 15;
+const TAP_MAX_MS = 300;
+
 // --- Web Mercator projection ---
 
 function lonToTileX(lon, zoom) {
@@ -312,13 +320,15 @@ function drawLines() {
 }
 
 function drawStations() {
-    // Find hovered station
-    hoveredStation = null;
-    for (const station of stations) {
-        const { x, y } = latLonToPixel(station.lat, station.lon);
-        if (dist(mouseX, mouseY, x, y) < 15) {
-            hoveredStation = station;
-            break;
+    // Find hovered station (mouse only — touch uses tap)
+    if (touches.length === 0 && !isDragging) {
+        hoveredStation = null;
+        for (const station of stations) {
+            const { x, y } = latLonToPixel(station.lat, station.lon);
+            if (dist(mouseX, mouseY, x, y) < 15) {
+                hoveredStation = station;
+                break;
+            }
         }
     }
 
@@ -423,6 +433,99 @@ function mouseWheel(event) {
     centerLat = constrain(180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n))), -85, 85);
 
     return false;
+}
+
+// --- Touch handlers ---
+
+function touchStarted() {
+    if (touches.length === 1) {
+        isDragging = true;
+        dragStartX = touches[0].x;
+        dragStartY = touches[0].y;
+        dragStartLat = centerLat;
+        dragStartLon = centerLon;
+        tapStartX = touches[0].x;
+        tapStartY = touches[0].y;
+        tapStartTime = millis();
+        tapCancelled = false;
+    } else if (touches.length === 2) {
+        isDragging = false;
+        tapCancelled = true;
+        pinchStartDist = dist(touches[0].x, touches[0].y, touches[1].x, touches[1].y);
+        pinchStartZoom = zoomLevel;
+    }
+    return false;
+}
+
+function touchMoved() {
+    if (touches.length === 2 && pinchStartDist !== null) {
+        const currentDist = dist(touches[0].x, touches[0].y, touches[1].x, touches[1].y);
+        const midX = (touches[0].x + touches[1].x) / 2;
+        const midY = (touches[0].y + touches[1].y) / 2;
+
+        // Get the geo position of the pinch midpoint before changing zoom
+        const midPos = pixelToLatLon(midX, midY);
+
+        zoomLevel = constrain(pinchStartZoom + Math.log2(currentDist / pinchStartDist), 9, 17);
+
+        // Adjust center so the pinch midpoint stays fixed on screen
+        const newMidPixel = latLonToPixel(midPos.lat, midPos.lon);
+        const scale = Math.pow(2, zoomLevel) * TILE_SIZE;
+        const dx = midX - newMidPixel.x;
+        const dy = midY - newMidPixel.y;
+
+        centerLon -= dx / scale * 360;
+        const clr = centerLat * Math.PI / 180;
+        const cy = (1 - Math.log(Math.tan(clr) + 1 / Math.cos(clr)) / Math.PI) / 2 * scale;
+        const n = Math.PI - 2 * Math.PI * (cy - dy) / scale;
+        centerLat = constrain(180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n))), -85, 85);
+
+    } else if (touches.length === 1 && isDragging) {
+        const dx = touches[0].x - tapStartX;
+        const dy = touches[0].y - tapStartY;
+        if (Math.sqrt(dx * dx + dy * dy) > TAP_MAX_MOVE) tapCancelled = true;
+
+        const scale = Math.pow(2, zoomLevel) * TILE_SIZE;
+        const pdx = touches[0].x - dragStartX;
+        const pdy = touches[0].y - dragStartY;
+
+        centerLon = dragStartLon - pdx / scale * 360;
+        const clr = dragStartLat * Math.PI / 180;
+        const startY = (1 - Math.log(Math.tan(clr) + 1 / Math.cos(clr)) / Math.PI) / 2 * scale;
+        const n = Math.PI - 2 * Math.PI * (startY - pdy) / scale;
+        centerLat = constrain(180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n))), -85, 85);
+    }
+    return false;
+}
+
+function touchEnded() {
+    if (touches.length === 0) {
+        if (!tapCancelled && millis() - tapStartTime < TAP_MAX_MS) {
+            handleTap(tapStartX, tapStartY);
+        }
+        isDragging = false;
+        pinchStartDist = null;
+    } else if (touches.length === 1) {
+        // Lifted one finger during pinch — resume pan from here
+        pinchStartDist = null;
+        isDragging = true;
+        dragStartX = touches[0].x;
+        dragStartY = touches[0].y;
+        dragStartLat = centerLat;
+        dragStartLon = centerLon;
+    }
+    return false;
+}
+
+function handleTap(x, y) {
+    for (const station of stations) {
+        const { x: sx, y: sy } = latLonToPixel(station.lat, station.lon);
+        if (dist(x, y, sx, sy) < 20) {
+            hoveredStation = (hoveredStation === station) ? null : station;
+            return;
+        }
+    }
+    hoveredStation = null;
 }
 
 // --- Button handlers ---
