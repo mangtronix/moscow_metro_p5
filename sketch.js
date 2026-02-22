@@ -132,12 +132,17 @@ function draw() {
 
 // --- Data loading ---
 
-function loadStaticData() {
-    stations = STATIC_STATIONS.slice();
-    stations.sort((a, b) => a.name.localeCompare(b.name));
-    document.getElementById('station-count').textContent = `Stations: ${stations.length} (cached)`;
-    dataLoaded = true;
-    loadCachedLines();
+async function loadStaticData() {
+    try {
+        const response = await fetch('./moscow_metro_stations.json');
+        stations = await response.json();
+        stations.sort((a, b) => a.name.localeCompare(b.name));
+        document.getElementById('station-count').textContent = `Stations: ${stations.length} (cached)`;
+        dataLoaded = true;
+    } catch (e) {
+        console.error('Failed to load station data:', e);
+    }
+    await loadCachedLines();
 }
 
 async function loadCachedLines() {
