@@ -51,3 +51,62 @@ Or just visit the [live demo](https://mangtronix.github.io/moscow_metro_p5/).
 ## Data
 
 Station and line data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), licensed under [ODbL](https://opendatacommons.org/licenses/odbl/).
+
+### Station JSON
+
+The station dataset is available as a standalone JSON file for use in your own sketches:
+
+```
+https://mangtronix.github.io/moscow_metro_p5/moscow_metro_stations.json
+```
+
+Each station object has the following fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Station name in Russian (Cyrillic) |
+| `nameEn` | string | Station name transliterated to English |
+| `lat` | number | Latitude (WGS84) |
+| `lon` | number | Longitude (WGS84) |
+| `line` | string | Line number(s), e.g. `"1"`, `"4, 4А"` |
+| `color` | string | Primary line color as hex, e.g. `"#E42313"` |
+| `lineColors` | array | Hex color for each line (transfer stations have multiple) |
+
+Example entry:
+
+```json
+{
+  "name": "Комсомольская",
+  "nameEn": "Komsomolskaya",
+  "lat": 55.7752557,
+  "lon": 37.6559741,
+  "line": "1",
+  "color": "#E42313",
+  "lineColors": ["#E42313"]
+}
+```
+
+### Using in a p5.js sketch
+
+The JSON is served with permissive CORS headers and works from any origin, including the [p5.js Web Editor](https://editor.p5js.org/).
+
+```javascript
+let stations = [];
+
+async function setup() {
+  createCanvas(800, 600);
+  const res = await fetch('https://mangtronix.github.io/moscow_metro_p5/moscow_metro_stations.json');
+  stations = await res.json();
+}
+
+function draw() {
+  background(30);
+  for (const s of stations) {
+    fill(s.color);
+    noStroke();
+    const x = map(s.lon, 37.2, 38.0, 0, width);
+    const y = map(s.lat, 55.5, 55.95, height, 0);
+    circle(x, y, 8);
+  }
+}
+```

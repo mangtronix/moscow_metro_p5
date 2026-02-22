@@ -117,8 +117,10 @@ function loadTile(x, y, z) {
 
 // --- p5.js lifecycle ---
 
+let canvasEl;
+
 function setup() {
-    createCanvas(windowWidth, windowHeight);
+    canvasEl = createCanvas(windowWidth, windowHeight).elt;
     textFont('Arial');
     loadStaticData();
 }
@@ -437,7 +439,8 @@ function mouseWheel(event) {
 
 // --- Touch handlers ---
 
-function touchStarted() {
+function touchStarted(event) {
+    if (event.target !== canvasEl) return;
     if (touches.length === 1) {
         isDragging = true;
         dragStartX = touches[0].x;
@@ -457,7 +460,8 @@ function touchStarted() {
     return false;
 }
 
-function touchMoved() {
+function touchMoved(event) {
+    if (event.target !== canvasEl) return;
     if (touches.length === 2 && pinchStartDist !== null) {
         const currentDist = dist(touches[0].x, touches[0].y, touches[1].x, touches[1].y);
         const midX = (touches[0].x + touches[1].x) / 2;
@@ -498,7 +502,8 @@ function touchMoved() {
     return false;
 }
 
-function touchEnded() {
+function touchEnded(event) {
+    if (event.target !== canvasEl) return;
     if (touches.length === 0) {
         if (!tapCancelled && millis() - tapStartTime < TAP_MAX_MS) {
             handleTap(tapStartX, tapStartY);
